@@ -17,6 +17,7 @@
 #include <rte_net.h>
 #include <rte_arp.h>
 #include <rte_cycles.h>
+#include <rte_compat.h>
 
 #include "pktgen.h"
 #include "pktgen-gre.h"
@@ -554,6 +555,7 @@ pktgen_packet_ctor(port_info_t *info, int32_t seq_idx, int32_t type)
 	if (likely(pkt->ethType == PG_ETHER_TYPE_IPv4)) {
 		if (likely(pkt->ipProto == PG_IPPROTO_TCP)) {
 			if (pkt->dport != PG_IPPROTO_L4_GTPU_PORT) {
+                                pkt->ip_src_addr.addr.ipv4.s_addr = rte_rand();
 				/* Construct the TCP header */
 				pktgen_tcp_hdr_ctor(pkt, l3_hdr, PG_ETHER_TYPE_IPv4);
 

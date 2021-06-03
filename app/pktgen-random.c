@@ -13,6 +13,7 @@
 #include <stdio.h>
 
 #include <rte_malloc.h>
+#include <rte_compat.h>
 
 #include "lua_config.h"
 
@@ -344,6 +345,8 @@ pktgen_init_default_rnd(void)
 	if (ret != sizeof(xor_state[0]))
 		pktgen_log_warning(
 			"Could not read enough random data for PRNG seed (%d)", ret);
+
+        rte_srand(xor_state[0]);
 
 	fclose(dev_random);
 }

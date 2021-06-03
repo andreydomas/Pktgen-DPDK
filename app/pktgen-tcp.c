@@ -8,6 +8,8 @@
 #include <cli_scrn.h>
 #include <lua_config.h>
 
+#include <rte_compat.h>
+
 #include "pktgen.h"
 
 #include "pktgen-tcp.h"
@@ -42,12 +44,12 @@ pktgen_tcp_hdr_ctor(pkt_seq_t *pkt, void * hdr, int type)
 		ipv4->total_length = htons(tlen);
 		ipv4->next_proto_id = pkt->ipProto;
 
-		tcp->src_port = htons(pkt->sport);
+		tcp->src_port = htons(rte_rand());
 		tcp->dst_port = htons(pkt->dport);
-		tcp->sent_seq = htonl(DEFAULT_PKT_NUMBER);
-		tcp->recv_ack = htonl(DEFAULT_ACK_NUMBER);
+		tcp->sent_seq = htonl(rte_rand());
+		tcp->recv_ack = 0;
 		tcp->data_off = ((sizeof(struct pg_tcp_hdr) / sizeof(uint32_t)) << 4);	/* Offset in words */
-		tcp->tcp_flags = ACK_FLAG;						/* ACK */
+		tcp->tcp_flags = SYN_FLAG;						/* SYN */
 		tcp->rx_win = htons(DEFAULT_WND_SIZE);
 		tcp->tcp_urp = 0;
 
