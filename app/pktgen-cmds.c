@@ -206,6 +206,8 @@ pktgen_script_save(char *path)
         fprintf(fd, "%sable %d gre\n", (flags & SEND_GRE_IPv4_HEADER) ? "en" : "dis", i);
         fprintf(fd, "%sable %d gre_eth\n", (flags & SEND_GRE_ETHER_HEADER) ? "en" : "dis", i);
 
+        fprintf(fd, "%sable %d ipip\n", (flags & SEND_IPIP_IPv4_HEADER) ? "en" : "dis", i);
+
         fprintf(fd, "%sable %d vxlan\n", (flags & SEND_VXLAN_PACKETS) ? "en" : "dis", i);
         fprintf(fd, "set %d vxlan 0x%x %d %d\n", i, pkt->vni_flags, pkt->group_id, pkt->vxlan_id);
 
@@ -526,6 +528,9 @@ pktgen_lua_save(char *path)
         fprintf(fd, "pktgen.gre_eth('%d', '%sable');\n", i,
                 (flags & SEND_GRE_ETHER_HEADER) ? "en" : "dis");
         fprintf(fd, "pktgen.gre_key('%d', %d);\n", i, pkt->gre_key);
+
+        fprintf(fd, "pktgen.ipip('%d', '%sable');\n", i,
+                (flags & SEND_IPIP_IPv4_HEADER) ? "en" : "dis");
 
         fprintf(fd, "pkrgen.vxlan('%d', '%sable');\n", i,
                 (flags & SEND_VXLAN_PACKETS) ? "en" : "dis");
@@ -963,6 +968,7 @@ pktgen_flags_string(port_info_t *info)
              : (flags & SEND_Q_IN_Q_IDS)       ? "QnQ"
              : (flags & SEND_GRE_IPv4_HEADER)  ? "GREip"
              : (flags & SEND_GRE_ETHER_HEADER) ? "GREet"
+             : (flags & SEND_IPIP_IPv4_HEADER) ? "IPIP"
                                                : "");
 
     /* single, range, sequence, random, pcap, latency, rate */
@@ -2454,6 +2460,27 @@ enable_gre(port_info_t *info, uint32_t onOff)
     pktgen_set_tx_update(info);
 }
 
+void
+enable_ipip(port_info_t *info, uint32_t onOff)
+{
+    if (onOff == ENABLE_STATE) {
+        if (info->seq_pkt[SINGLE_PKT].pktSize < MIN_PKT_SIZE + sizeof(struct pg_ipv4_hdr))
+            info->seq_pkt[SINGLE_PKT].pktSize += sizeof(struct pg_ipv4_hdr);
+        if (info->seq_pkt[RANGE_PKT].pktSize < MIN_PKT_SIZE + sizeof(struct pg_ipv4_hdr))
+            info->seq_pkt[RANGE_PKT].pktSize += sizeof(struct pg_ipv4_hdr);
+        pktgen_set_port_flags(info, SEND_IPIP_IPv4_HEADER);
+    } else {
+        if (info->seq_pkt[SINGLE_PKT].pktSize >= MIN_PKT_SIZE + sizeof(struct pg_ipv4_hdr))
+            info->seq_pkt[SINGLE_PKT].pktSize -= sizeof(struct pg_ipv4_hdr);
+        if (info->seq_pkt[RANGE_PKT].pktSize >= MIN_PKT_SIZE + sizeof(struct pg_ipv4_hdr))
+            info->seq_pkt[RANGE_PKT].pktSize -= sizeof(struct pg_ipv4_hdr);
+        pktgen_clr_port_flags(info, SEND_IPIP_IPv4_HEADER);
+    }
+    pktgen_packet_ctor(info, SINGLE_PKT, -1);
+    pktgen_packet_ctor(info, RANGE_PKT, -1);
+    pktgen_set_tx_update(info);
+}
+
 /**
  *
  * pktgen_set_gre_eth - Set the port to send GRE with Ethernet payload
@@ -3152,6 +3179,20 @@ single_set_ipaddr(port_info_t *info, char type, struct pg_ipaddr *ip, int ip_ver
 
         if (pkt->ethType != PG_ETHER_TYPE_IPv6)
             single_set_pkt_type(info, "ipv6");
+    }
+    pktgen_packet_ctor(info, SINGLE_PKT, -1);
+    pktgen_set_tx_update(info);
+}
+
+void single_set_ipip_ipaddr(port_info_t *info, char type, struct pg_ipaddr *ip, int ip_ver) {
+    pkt_seq_t *pkt = &info->seq_pkt[SINGLE_PKT];
+    if (ip_ver == 4) {
+        if (type == 's')
+            pkt->ipip_src_addr = ntohl(ip->ipv4.s_addr);
+        else if (type == 'd')
+            pkt->ipip_dst_addr = ntohl(ip->ipv4.s_addr);
+        else
+            return;
     }
     pktgen_packet_ctor(info, SINGLE_PKT, -1);
     pktgen_set_tx_update(info);

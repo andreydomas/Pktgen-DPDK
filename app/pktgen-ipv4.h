@@ -14,6 +14,8 @@
 extern "C" {
 #endif
 
+void pktgen_outer_ipv4_ctor(pkt_seq_t *pkt, void *hdr);
+void pktgen_ipv4_ctor_length(pkt_seq_t *pkt, void *hdr, uint64_t length_dec);
 void pktgen_ipv4_ctor(pkt_seq_t *pkt, void *hdr);
 void pktgen_send_ping4(uint32_t pid, uint8_t seq_idx);
 void pktgen_process_ping4(struct rte_mbuf *m, uint32_t pid, uint32_t vlan);

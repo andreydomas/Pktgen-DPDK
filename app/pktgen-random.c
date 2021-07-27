@@ -13,12 +13,13 @@
 #include <stdio.h>
 
 #include <rte_malloc.h>
-#include <rte_compat.h>
 
 #include "lua_config.h"
 
 #include "pktgen-display.h"
 #include "pktgen-log.h"
+
+#include <rte_compat.h>
 
 #include "xorshift64star.h"	/* PRNG function */
 
@@ -347,7 +348,6 @@ pktgen_init_default_rnd(void)
 			"Could not read enough random data for PRNG seed (%d)", ret);
 
         rte_srand(xor_state[0]);
-
 	fclose(dev_random);
 }
 

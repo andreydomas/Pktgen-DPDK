@@ -75,6 +75,8 @@ pktgen_wire_size(port_info_t *info)
 		} else
 			size = info->seq_pkt[SINGLE_PKT].pktSize + PKT_OVERHEAD_SIZE;
 	}
+        if (pktgen_tst_port_flags(info, SEND_IPIP_IPv4_HEADER))
+            size += sizeof(struct pg_ipv4_hdr);
 	return size;
 }
 
@@ -556,11 +558,25 @@ pktgen_packet_ctor(port_info_t *info, int32_t seq_idx, int32_t type)
 		if (likely(pkt->ipProto == PG_IPPROTO_TCP)) {
 			if (pkt->dport != PG_IPPROTO_L4_GTPU_PORT) {
                                 pkt->ip_src_addr.addr.ipv4.s_addr = rte_rand();
-				/* Construct the TCP header */
-				pktgen_tcp_hdr_ctor(pkt, l3_hdr, PG_ETHER_TYPE_IPv4);
-
-				/* IPv4 Header constructor */
-				pktgen_ipv4_ctor(pkt, l3_hdr);
+                                if (flags & SEND_IPIP_IPv4_HEADER) {
+                                    char inner_ptk_offset = sizeof(struct pg_ipv4_hdr);
+                                    /* Construct the TCP header */
+                                    pktgen_tcp_hdr_ctor_length(pkt,
+                                                               l3_hdr + inner_ptk_offset,
+                                                               PG_ETHER_TYPE_IPv4,
+                                                               inner_ptk_offset);
+                                    /* IPv4 Header constructor */
+                                    pktgen_ipv4_ctor_length(pkt,
+                                                            l3_hdr + inner_ptk_offset,
+                                                            inner_ptk_offset);
+                                    /* IPIP outer header */
+                                    pktgen_outer_ipv4_ctor(pkt, l3_hdr);
+                                } else {
+                                    /* Construct the TCP header */
+                                    pktgen_tcp_hdr_ctor(pkt, l3_hdr, PG_ETHER_TYPE_IPv4);
+                                    /* IPv4 Header constructor */
+                                    pktgen_ipv4_ctor(pkt, l3_hdr);
+                                }
 			} else {
 				/* Construct the GTP-U header */
 				pktgen_gtpu_hdr_ctor(pkt, l3_hdr, pkt->ipProto,

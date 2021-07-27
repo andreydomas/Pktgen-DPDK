@@ -8,11 +8,11 @@
 #include <cli_scrn.h>
 #include <lua_config.h>
 
-#include <rte_compat.h>
-
 #include "pktgen.h"
 
 #include "pktgen-tcp.h"
+
+#include <rte_compat.h>
 
 /**
  *
@@ -27,10 +27,8 @@
  */
 
 void *
-pktgen_tcp_hdr_ctor(pkt_seq_t *pkt, void * hdr, int type)
-{
+pktgen_tcp_hdr_ctor_length(pkt_seq_t *pkt, void * hdr, int type, uint64_t length_dec) {
 	uint16_t tlen;
-
 	if (type == PG_ETHER_TYPE_IPv4) {
 		struct pg_ipv4_hdr *ipv4 = (struct pg_ipv4_hdr *)hdr;
 		struct pg_tcp_hdr *tcp = (struct pg_tcp_hdr *)&ipv4[1];
@@ -40,7 +38,8 @@ pktgen_tcp_hdr_ctor(pkt_seq_t *pkt, void * hdr, int type)
 		ipv4->dst_addr = htonl(pkt->ip_dst_addr.addr.ipv4.s_addr);
 
 		ipv4->version_ihl = (IPv4_VERSION << 4) | (sizeof(struct pg_ipv4_hdr) / 4);
-		tlen = pkt->pktSize - pkt->ether_hdr_size;
+		tlen = pkt->pktSize - pkt->ether_hdr_size - length_dec;
+                tlen = pkt->pktSize - pkt->ether_hdr_size;
 		ipv4->total_length = htons(tlen);
 		ipv4->next_proto_id = pkt->ipProto;
 
@@ -50,7 +49,7 @@ pktgen_tcp_hdr_ctor(pkt_seq_t *pkt, void * hdr, int type)
 		tcp->recv_ack = 0;
 		tcp->data_off = ((sizeof(struct pg_tcp_hdr) / sizeof(uint32_t)) << 4);	/* Offset in words */
 		tcp->tcp_flags = SYN_FLAG;						/* SYN */
-		tcp->rx_win = htons(DEFAULT_WND_SIZE);
+		tcp->rx_win = htons(64960);
 		tcp->tcp_urp = 0;
 
 		tcp->cksum = 0;
@@ -67,7 +66,7 @@ pktgen_tcp_hdr_ctor(pkt_seq_t *pkt, void * hdr, int type)
 		rte_memcpy(ipv6->src_addr, &pkt->ip_src_addr.addr.ipv6.s6_addr,
 				sizeof(struct in6_addr));
 
-		tlen = pkt->pktSize - (pkt->ether_hdr_size + sizeof(struct pg_ipv6_hdr));
+		tlen = pkt->pktSize - (pkt->ether_hdr_size + sizeof(struct pg_ipv6_hdr)) - length_dec;
 		ipv6->payload_len = htons(tlen);
 		ipv6->proto = pkt->ipProto;
 
@@ -87,4 +86,10 @@ pktgen_tcp_hdr_ctor(pkt_seq_t *pkt, void * hdr, int type)
 
 	/* In this case we return the original value to allow IP ctor to work */
 	return hdr;
+}
+
+void *
+pktgen_tcp_hdr_ctor(pkt_seq_t *pkt, void * hdr, int type)
+{
+    return pktgen_tcp_hdr_ctor_length(pkt, hdr, type, 0);
 }

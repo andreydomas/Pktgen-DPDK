@@ -31,6 +31,9 @@ typedef struct pkt_seq_s {
 	struct cmdline_ipaddr ip_dst_addr;	/**< Destination IPv4 address */
 	uint32_t ip_mask;			/**< IPv4 Netmask value */
 
+        uint32_t ipip_src_addr;
+        uint32_t ipip_dst_addr;
+
 	uint16_t sport;		/**< Source port value */
 	uint16_t dport;		/**< Destination port value */
 	uint16_t ethType;	/**< IPv4 or IPv6 */

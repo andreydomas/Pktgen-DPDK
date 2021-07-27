@@ -491,6 +491,8 @@ static struct cli_map set_map[] = {
 	{ 70, "set %P cos %d" },
 	{ 80, "set %P tos %d" },
 	{ 90, "set %P vxlan %h %d %d" },
+	{ 110, "set %P ipip src %4" },
+	{ 120, "set %P ipip dst %4" },
     { 100, "set %P latsampler %|simple|poisson %d %d %s" },
 	{ -1, NULL }
 };
@@ -535,6 +537,7 @@ static const char *set_help[] = {
 	"set <portlist> cos <value>         - Set the CoS value for the portlist",
 	"set <portlist> tos <value>         - Set the ToS value for the portlist",
 	"set <portlist> vxlan <flags> <group id> <vxlan_id> - Set the vxlan values",
+        "set <portlist> ipip [src|dst] ipaddr - Set IP addresses for IPIP-tunnel",
     "set <portlist> latsampler [simple|poisson] <num-samples> <rate> <outfile>	- Set latency sampler parameters",
     "		num-samples: number of samples.",
     "		rate: sampling rate i.e., samples per second.",
@@ -703,6 +706,19 @@ set_cmd(int argc, char **argv)
             u2 = strtol(argv[5], NULL, 0);
             foreach_port(portlist, single_set_latsampler_params(info, argv[3], u1, u2, argv[6]));
             break;
+
+        // ipip src ip
+        case 110:
+            ip_ver = _atoip(argv[4], PG_IPADDR_V6, &ip, sizeof(ip));
+            foreach_port(portlist, single_set_ipip_ipaddr(info, 's', &ip, ip_ver));
+            break;
+
+        // ipip dst ip
+        case 120:
+            ip_ver = _atoip(argv[4], PG_IPADDR_V6, &ip, sizeof(ip));
+            foreach_port(portlist, single_set_ipip_ipaddr(info, 'd', &ip, ip_ver));
+            break;
+
 		default:
 			return cli_cmd_error("Command invalid", "Set", argc, argv);
 	}
@@ -897,7 +913,8 @@ theme_cmd(int argc, char **argv)
 		"capture|"		/* 15 */	\
 		"bonding|"		/* 16 */	\
 		"vxlan|"		/* 17 */	\
-		"rate"			/* 18 */
+		"rate|"			/* 18 */        \
+		"ipip"			/* 19 */
 
 static struct cli_map enable_map[] = {
 	{ 10, "enable %P %|" ed_type },
@@ -928,6 +945,7 @@ static const char *enable_help[] = {
     "                                     Disable capture on a port to save the data into the current working directory.",
 	"enable|disable <portlist> bonding  - Enable call TX with zero packets for bonding driver",
 	"enable|disable <portlist> vxlan    - Send VxLAN packets",
+	"enable|disable <portlist> ipip     - Send IPIP Encapsulated packets",
 	"enable|disable <portlist> rate     - Enable/Disable Rate Packing on given ports",
 	"enable|disable mac_from_arp        - Enable/disable MAC address from ARP packet",
 	"enable|disable screen              - Enable/disable updating the screen and unlock/lock window",
@@ -1022,6 +1040,9 @@ en_dis_cmd(int argc, char **argv)
 				case 18:
 					foreach_port(portlist, enable_rate(info, state));
 					break;
+                                case 19:
+                                        foreach_port(portlist, enable_ipip(info, state));
+                                        break;
 				default:
 					return cli_cmd_error("Enable/Disable invalid command", "Enable", argc, argv);
 			}

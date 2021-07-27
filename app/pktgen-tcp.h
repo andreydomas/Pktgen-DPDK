@@ -29,6 +29,7 @@ extern "C" {
  */
 
 void* pktgen_tcp_hdr_ctor(pkt_seq_t * pkt, void *hdr, int type);
+void *pktgen_tcp_hdr_ctor_length(pkt_seq_t *pkt, void * hdr, int type, uint64_t length_dec);
 
 #ifdef __cplusplus
 }

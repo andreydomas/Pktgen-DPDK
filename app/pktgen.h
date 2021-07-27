@@ -253,7 +253,7 @@ enum {
 	SOCKET0                 = 0	/**< Socket ID value for allocation */
 };
 
-#define MIN_PKT_SIZE		(pktgen.eth_min_pkt - PG_ETHER_CRC_LEN)
+#define MIN_PKT_SIZE		(pktgen.eth_min_pkt - RTE_ETHER_HDR_LEN + RTE_ETHER_CRC_LEN)
 #define MAX_PKT_SIZE        (pktgen.eth_max_pkt - PG_ETHER_CRC_LEN)
 
 typedef struct rte_mbuf rte_mbuf_t;

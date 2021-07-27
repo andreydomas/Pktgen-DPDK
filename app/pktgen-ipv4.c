@@ -27,14 +27,40 @@
  * SEE ALSO:
  */
 
+void pktgen_outer_ipv4_ctor(pkt_seq_t *pkt, void *hdr) {
+        struct pg_ipv4_hdr *ip = hdr;
+        uint16_t tlen;
+
+        /* IPv4 Header constructor */
+        tlen = pkt->pktSize - pkt->ether_hdr_size;
+
+        /* Zero out the header space */
+        memset((char *)ip, 0, sizeof(struct pg_ipv4_hdr));
+
+        ip->version_ihl = (IPv4_VERSION << 4) | (sizeof(struct pg_ipv4_hdr) / 4);
+
+        ip->total_length = htons(tlen);
+        ip->time_to_live = pkt->ttl;
+        ip->type_of_service = pkt->tos;
+
+        pktgen.ident += 27;	/* bump by a prime number */
+        ip->packet_id = htons(pktgen.ident);
+        ip->fragment_offset = 0;
+        ip->next_proto_id = 4; // grep ipip /etc/protocols
+        ip->src_addr = htonl(pkt->ipip_src_addr);
+        ip->dst_addr = htonl(pkt->ipip_dst_addr);
+        ip->hdr_checksum = 0;
+        ip->hdr_checksum = rte_ipv4_cksum((const struct pg_ipv4_hdr *)ip);
+}
+
 void
-pktgen_ipv4_ctor(pkt_seq_t *pkt, void *hdr)
+pktgen_ipv4_ctor_length(pkt_seq_t *pkt, void *hdr, uint64_t length_dec)
 {
 	struct pg_ipv4_hdr *ip = hdr;
 	uint16_t tlen;
 
 	/* IPv4 Header constructor */
-	tlen = pkt->pktSize - pkt->ether_hdr_size;
+	tlen = pkt->pktSize - pkt->ether_hdr_size - length_dec;
 
 	/* Zero out the header space */
 	memset((char *)ip, 0, sizeof(struct pg_ipv4_hdr));
@@ -53,6 +79,12 @@ pktgen_ipv4_ctor(pkt_seq_t *pkt, void *hdr)
 	ip->dst_addr = htonl(pkt->ip_dst_addr.addr.ipv4.s_addr);
 	ip->hdr_checksum = 0;
 	ip->hdr_checksum = rte_ipv4_cksum((const struct pg_ipv4_hdr *)ip);
+}
+
+void
+pktgen_ipv4_ctor(pkt_seq_t *pkt, void *hdr)
+{
+    pktgen_ipv4_ctor_length(pkt, hdr, 0);
 }
 
 /**

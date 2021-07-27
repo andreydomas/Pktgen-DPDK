@@ -90,6 +90,8 @@ enum { /* Per port flag bits */
 
        SAMPLING_LATENCIES = (1 << 26), /**< Sampling latency measurements> */
 
+       SEND_IPIP_IPv4_HEADER = ( 1 << 27), /** IPIP Encapsulation */
+
        /* Sending flags */
        SENDING_PACKETS = (1 << 30), /**< sending packets on this port */
        SEND_FOREVER    = (1 << 31), /**< Send packets forever */
@@ -311,6 +313,7 @@ typedef struct port_info_s {
     uint32_t latsamp_rate;        /**< Sampling rate i.e., samples per second  */
     uint32_t latsamp_num_samples; /**< Number of samples to collect  */
     char latsamp_outfile[256];    /**< Path to file for dumping latency samples */
+
 } port_info_t;
 
 struct vxlan {
